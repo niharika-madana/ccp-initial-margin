@@ -3,24 +3,17 @@ Design v0.1 · Sep 2026
 
 ## 1. Scope
 
-**Purpose:** Implement a filtered-historical-simulation initial margin model for the CME Treasury futures complex, structured after CME's SPAN 2 framework; validate
-it for coverage and procyclicality; and extend the validated model to clearing-house-level default-fund adequacy under a Cover-2 standard.
+**Purpose:** Implement a filtered-historical-simulation initial margin model for the CME Treasury futures complex, structured after CME's SPAN 2 framework; validate it for coverage and procyclicality; and extend the validated model to clearing-house-level default-fund adequacy under a Cover-2 standard.
 
-**Research question:** Anti-procyclicality tools damp the responsiveness of initial
-margin to realised volatility. That damping is not free: it raises average margin
-in calm regimes, and members fund the difference continuously. Quantify the
-trade-off(reduction in margin procyclicality against the increase in average
-margin) across the EMIR Article 28 tool set, holding 99% coverage as a binding
-constraint rather than an objective.
+**Research question:** Anti-procyclicality tools damp the responsiveness of initial margin to realised volatility. That damping is not free: it raises average margin in calm regimes, and members fund the difference continuously. Quantify the
+trade-off(reduction in margin procyclicality against the increase in average margin) across the EMIR Article 28 tool set, holding 99% coverage as a binding constraint rather than an objective.
 
 Products:  ZT, ZF, ZN, TN, ZB, UB(CME Treasury futures, 2y to ultra-long).
 Window:    2010 → today. Covers Mar 2020, the 2022 rates selloff, Mar 2023.
 Positions: synthetic. Three test portfolios early (long ZN, 2s30s steepener,
            5s10s30s butterfly), then 20–30 generated clearing members.
 
-Not in v1: options on futures; cross-margining vs cash Treasuries or repo;
-collateral haircuts and FX; liquidity stress (credit stress only); recovery
-tools past assessments; Cross Model Offset (legacy-SPAN books only).
+Not covered: options on futures; cross-margining vs cash Treasuries or repo; collateral haircuts and FX; liquidity stress (credit stress only); recovery tools past assessments; Cross Model Offset (legacy-SPAN books only).
 
 ## 2. Data
 
@@ -37,36 +30,26 @@ Using `dsfutcontrval`,  one row per delivery contract per day.
 | ZB      | 3271      | 2441    | 1976-12 → 2027-03 | 202 |
 | UB      | 2685      | 2001    | 2010-01 → 2027-03 |  69 |
 
-These are the composite trading-class series. The electronic-only ones
-(CZN 458, CZT 463, CZF 452, CZB 448, CZU 2687) stop after Dec 2025 — a daily
-pipeline built on them would have had no data since Jan 2026.
+These are the composite trading-class series. The electronic-only ones(CZN 458, CZT 463, CZF 452, CZB 448, CZU 2687) stop after Dec 2025, a daily pipeline built on them would have had no data from Jan 2026.
 
-Sanity check that passed: contract counts match the Mar/Jun/Sep/Dec cycle
-exactly (ZF 39y x 4 = 156, observed 156). Launch dates in the data match the
-real CME launches of UB (2010) and TN (2016).
+Sanity check that passed: contract counts match the Mar/Jun/Sep/Dec cycle exactly (ZF 39y x 4 = 156, observed 156). Launch dates in the data match the real CME launches of UB (2010) and TN (2016).
 
 Fields: open, high, low, settlement, volume, open interest. No nulls.
 
-Multipliers: from `dsfutcontrchg` (LotSize, TickValue, TickSize), read
-as-of-date. These change over time, so hardcoding today's values onto 2012
-prices is wrong. ZN checks out: 100,000 / 15.625 / 0.015625.
+Multipliers: from `dsfutcontrchg` (LotSize, TickValue, TickSize), read as-of-date. These change over time, so hardcoding today's values onto 2012 prices is wrong
 
-Roll dates: `firstnoticedate` on `dsfutcontrinfo`. Present on ~100% of
-post-2009 contracts. For Treasury futures first notice comes BEFORE last trade,
-so rolling off last-trade is a different and wrong roll.
+Roll dates: `firstnoticedate` on `dsfutcontrinfo`. Present on ~100% of post-2009 contracts. For Treasury futures first notice comes BEFORE last trade, so rolling off last-trade is a different and wrong roll.
 
 Curve data: FRED (DGS2, DGS5, DGS10, DGS30).
 
 Not available:
-- CRSP Treasuries — not entitled. No CUSIP data, so no true cheapest-to-deliver.
-  This forces price-space risk factors, which was the better choice anyway.
-- Exchange margin history — Datastream margin fields are empty. The CME margin
-  comparison in Week 7 has to be rebuilt by hand from margin advisories.
+- CRSP Treasuries: Not entitled, no CUSIP data, so no true cheapest-to-deliver. This forces price-space risk factors, which was the better choice anyway.
+- Exchange margin history: Datastream margin fields are empty.
 
 ## 3. Model parameters
 
 Risk factors: price-space, per contract per tenor rank (front, second).
-Lookback:     2 years default. Grid {1y, 2y, 5y, 10y}. EMIR floor: 12 months.
+Lookback:     2 years default. Grid {1y, 2y, 5y, 10y}(EMIR floor: 12 months).
 Confidence:   99% default. Grid {99, 99.5}. EMIR floor: 99% listed, 99.5% OTC.
 MPOR:         1 day default (CME listed). Grid {1, 2}. EMIR floor is 2.
 EWMA lambda:  0.94 default (RiskMetrics). Grid {0.94, 0.97, 0.99}.
