@@ -1,0 +1,50 @@
+products:
+  - {symbol: ZT, contrcode: 3377, clscode: 2523}
+  - {symbol: ZF, contrcode: 2680, clscode: 1997}
+  - {symbol: ZN, contrcode: 2682, clscode: 3896}
+  - {symbol: TN, contrcode: 4361, clscode: 4359}
+  - {symbol: ZB, contrcode: 3271, clscode: 2441}
+  - {symbol: UB, contrcode: 2685, clscode: 2001}
+
+window:
+  start: 2010-01-01
+  end: null                                 # null = today
+
+risk_factor:
+  space: price                              # forced by no CRSP Treasury data
+  tenor_ranks: [1, 2]                       # front and second month only
+  roll:
+    rule: first_notice                      # [author] first notice precedes last trade
+    offset_bd: 5
+
+returns:
+  mpor_days: 1                              # [literature] CME listS one day. EMIR floor is two days.
+
+vol:
+  method: ewma
+  lambda: 0.94                              # [literature] RiskMetrics 1996
+                                            # half-life = ln(0.5)/ln(lambda) = 11.2d
+
+hvar:
+  lookback_years: 2.0                       # [author] [EMIR] floor: 12 months
+  confidence: 0.99                          # [EMIR] floor for exchange-traded
+
+svar:
+  aggregation: max                          # [author] "extreme but plausible" is a
+                                            # hand-picked set, not a sample
+
+blend:
+  x: null                                   # PROVISIONAL — uncalibrated.
+                                            # Calibrate against CME published margin
+                                            # in Week 7. No published consensus value.
+
+apc:
+  tool: none                                # none|buffer|stressed_weight|
+                                            # lookback_floor|vol_floor
+  buffer_pct: 0.25                          # [EMIR] Art. 28(a) minimum
+  stressed_weight: 0.25                     # [EMIR] Art. 28(b) minimum
+  floor_lookback_years: 10                  # [EMIR] Art. 28(c)
+
+addons:
+  liquidity:     {enabled: false}
+  concentration: {enabled: false}
